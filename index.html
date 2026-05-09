@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>자산 시뮬레이터 v7.1 (슬롯 확장)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #00d2ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; 
+            --s1: #fb923c; --s2: #facc15; --s3: #4ade80; --btn-bg: #334155;
+        }
+        * { font-family: 'Gowun Dodum', sans-serif !important; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 20px 20px 240px 20px; }
+        .container { max-width: 850px; margin: 0 auto; }
+        
+        .section { background: var(--card); padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.05); }
+        h2 { color: var(--primary); margin: 0 0 20px 0; font-size: 1.3rem; border-bottom: 2px solid rgba(0,210,255,0.1); padding-bottom: 10px; }
+        
+        .input-group { display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 15px; border: 1px solid #475569; }
+        .btn-stack { display: flex; flex-direction: column; gap: 2px; }
+        .btn-updown { width: 42px; height: 26px; border: none; background: var(--btn-bg); color: var(--primary); font-size: 0.8rem; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        
+        input[type="text"], input[type="number"] { flex: 1; background: none; border: none; color: white; text-align: center; font-size: 1.2rem; font-weight: bold; outline: none; }
+
+        .asset-name-input { background: rgba(255,255,255,0.05) !important; color: var(--primary) !important; text-align: left !important; font-size: 1rem !important; padding: 5px 10px !important; border-radius: 8px; border: 1px solid transparent !important; width: 160px; }
+
+        .step-grid { display: grid; grid-template-columns: 1.2fr 2fr; gap: 15px; margin-bottom: 15px; padding: 20px; background: rgba(255,255,255,0.03); border-radius: 20px; border-left: 6px solid #ccc; }
+
+        .asset-card { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .asset-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .asset-info { display: flex; align-items: center; gap: 10px; }
+
+        .rate-adj { display: flex; align-items: center; gap: 3px; background: var(--btn-bg); padding: 4px 8px; border-radius: 15px; }
+        .btn-rate { background:none; border:none; color:var(--primary); cursor:pointer; font-weight:bold; font-size: 1.1rem; padding: 0 5px; }
+
+        .lock-btn { background: var(--btn-bg); border: none; color: #fff; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 1rem; }
+        .lock-btn.locked { background: var(--s2); color: #000; }
+
+        .wide-slider { width: 100%; height: 12px; accent-color: var(--primary); cursor: pointer; margin-top: 10px; -webkit-appearance: none; background: #475569; border-radius: 10px; outline: none; }
+        .wide-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; background: var(--primary); border-radius: 50%; cursor: pointer; border: 3px solid #fff; }
+
+        .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(20px); padding: 15px 25px; border-top: 3px solid var(--primary); z-index: 1000; }
+        .bar-content { max-width: 850px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .price-container { display: flex; flex-direction: column; }
+        .small-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 2px; }
+        .big-price { font-size: 2.2rem; font-weight: 900; color: var(--primary); line-height: 1; }
+        .goal-badge { display: inline-block; background: var(--s3); color: #000; font-size: 0.7rem; padding: 3px 10px; border-radius: 12px; font-weight: bold; margin-top: 8px; align-self: flex-start; }
+        
+        /* 슬롯 레이아웃 수정 */
+        .slot-group { display: flex; gap: 10px; align-items: center; }
+        .slot-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .slot-time { font-size: 0.6rem; color: var(--s3); height: 12px; }
+        .btn-slot-row { display: flex; gap: 2px; }
+        .btn-slot { background: var(--btn-bg); color: white; border: 1px solid rgba(0,210,255,0.2); padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
+        .btn-slot:hover { background: #475569; }
+
+        .btn-report { background: var(--s3); color: #000; padding: 15px 30px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+
+        #modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--card); padding:30px; border-radius:30px; z-index:2000; border:2px solid var(--primary); width:95%; max-width:500px; }
+        .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1500; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #fff; }
+        th, td { padding: 12px; border-bottom: 1px solid #334155; text-align: right; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="section">
+        <h2>👤 투자 기본 정보</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>현재 나이</label>
+                <div class="input-group">
+                    <input type="number" id="baseAge" value="17" oninput="calculate()">
+                    <div class="btn-stack"><button class="btn-updown" onclick="adj('baseAge', 1)">▲</button><button class="btn-updown" onclick="adj('baseAge', -1)">▼</button></div>
+                </div>
+            </div>
+            <div>
+                <label>총 투자 기간 (년)</label>
+                <div class="input-group">
+                    <input type="number" id="totalYears" value="30" oninput="calculate()">
+                    <div class="btn-stack"><button class="btn-updown" onclick="adj('totalYears', 1)">▲</button><button class="btn-updown" onclick="adj('totalYears', -1)">▼</button></div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <label>시작 자산 (원)</label>
+            <div class="input-group">
+                <input type="text" id="startMoney" value="10,000,000" oninput="handleMoneyInput(this)">
+                <div class="btn-stack"><button class="btn-updown" onclick="adjMoney('startMoney', 1000000)">▲</button><button class="btn-updown" onclick="adjMoney('startMoney', -1000000)">▼</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>💰 계단식 적립 계획</h2>
+        <div class="step-grid" style="border-left-color: var(--s1);">
+            <div><label>1차 기간</label><div class="input-group"><input type="number" id="y1" value="5" oninput="calculate()"><div class="btn-stack"><button class="btn-updown" onclick="adj('y1', 1)">▲</button><button class="btn-updown" onclick="adj('y1', -1)">▼</button></div></div></div>
+            <div><label>1차 월 적립금</label><div class="input-group"><input type="text" id="m1" value="500,000" oninput="handleMoneyInput(this)"><div class="btn-stack"><button class="btn-updown" onclick="adjMoney('m1', 100000)">▲</button><button class="btn-updown" onclick="adjMoney('m1', -100000)">▼</button></div></div></div>
+        </div>
+        <div class="step-grid" style="border-left-color: var(--s2);">
+            <div><label>2차 기간</label><div class="input-group"><input type="number" id="y2" value="10" oninput="calculate()"><div class="btn-stack"><button class="btn-updown" onclick="adj('y2', 1)">▲</button><button class="btn-updown" onclick="adj('y2', -1)">▼</button></div></div></div>
+            <div><label>2차 월 적립금</label><div class="input-group"><input type="text" id="m2" value="2,000,000" oninput="handleMoneyInput(this)"><div class="btn-stack"><button class="btn-updown" onclick="adjMoney('m2', 500000)">▲</button><button class="btn-updown" onclick="adjMoney('m2', -500000)">▼</button></div></div></div>
+        </div>
+        <div class="step-grid" style="border-left-color: var(--s3);">
+            <div><label>3차 나머지 (<span id="y3_val">15</span>년)</label></div>
+            <div><label>3차 월 적립금</label><div class="input-group"><input type="text" id="m3" value="5,000,000" oninput="handleMoneyInput(this)"><div class="btn-stack"><button class="btn-updown" onclick="adjMoney('m3', 1000000)">▲</button><button class="btn-updown" onclick="adjMoney('m3', -1000000)">▼</button></div></div></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📊 종목 비중 (밀어서 조절)</h2>
+        <div id="assetList"></div>
+    </div>
+</div>
+
+<div class="bottom-bar">
+    <div class="bar-content">
+        <div class="price-container">
+            <div class="small-label" id="resPrinc">원금: 0원</div>
+            <div class="big-price" id="resPrice">0원</div>
+            <div id="goalBadge" class="goal-badge">시작이 반!</div>
+        </div>
+        
+        <div class="slot-group">
+            <div class="slot-item">
+                <div class="slot-time" id="t1"></div>
+                <div class="btn-slot-row">
+                    <button class="btn-slot" onclick="save(1)">💾1</button>
+                    <button class="btn-slot" onclick="load(1)">📂1</button>
+                </div>
+            </div>
+            <div class="slot-item">
+                <div class="slot-time" id="t2"></div>
+                <div class="btn-slot-row">
+                    <button class="btn-slot" onclick="save(2)">💾2</button>
+                    <button class="btn-slot" onclick="load(2)">📂2</button>
+                </div>
+            </div>
+            <div class="slot-item">
+                <div class="slot-time" id="t3"></div>
+                <div class="btn-slot-row">
+                    <button class="btn-slot" onclick="save(3)">💾3</button>
+                    <button class="btn-slot" onclick="load(3)">📂3</button>
+                </div>
+            </div>
+            <button class="btn-report" onclick="showReport()">리포트</button>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeReport()"></div>
+<div id="modal">
+    <h3 style="text-align:center; color:var(--primary)">📅 상세 리포트</h3>
+    <div style="max-height:350px; overflow-y:auto;"><table id="reportTable"><thead><tr><th style="text-align:center">나이</th><th>누적 원금</th><th>최종 자산</th></tr></thead><tbody id="reportTbody"></tbody></table></div>
+    <button class="btn-report" style="width:100%; margin-top:20px; background:#475569; color:#fff;" onclick="closeReport()">닫기</button>
+</div>
+
+<script>
+    const parseN = (v) => parseInt(String(v).replace(/[^0-9]/g, "")) || 0;
+    const fmtWon = (n) => n >= 100000000 ? (n/100000000).toFixed(2) + "억" : Math.round(n/10000).toLocaleString() + "만";
+
+    let assets = [
+        { name: "나스닥100", rate: 12, ratio: 200, locked: false },
+        { name: "S&P500", rate: 9, ratio: 200, locked: false },
+        { name: "SCHD배당", rate: 10, ratio: 200, locked: false },
+        { name: "안전자산", rate: 5, ratio: 100, locked: false },
+        { name: "커스텀 A", rate: 20, ratio: 150, locked: false },
+        { name: "커스텀 B", rate: 15, ratio: 150, locked: false }
+    ];
+
+    function adj(id, d) { document.getElementById(id).value = Math.max(0, parseInt(document.getElementById(id).value) + d); calculate(); }
+    function adjMoney(id, d) { document.getElementById(id).value = Math.max(0, parseN(document.getElementById(id).value) + d).toLocaleString(); calculate(); }
+    function handleMoneyInput(el) { el.value = parseN(el.value).toLocaleString(); calculate(); }
+
+    function adjRate(i, d) {
+        assets[i].rate = Math.max(0, assets[i].rate + d);
+        initAssets();
+        calculate();
+    }
+
+    function initAssets() {
+        const list = document.getElementById('assetList'); list.innerHTML = '';
+        assets.forEach((ast, i) => {
+            const card = document.createElement('div');
+            card.className = 'asset-card';
+            card.innerHTML = `
+                <div class="asset-header">
+                    <input type="text" class="asset-name-input" value="${ast.name}" oninput="assets[${i}].name=this.value">
+                    <div class="asset-info">
+                        <div class="rate-adj">
+                            <button class="btn-rate" onclick="adjRate(${i}, -1)">-</button>
+                            <span style="color:#fff; font-size:0.9rem;">연 ${ast.rate}%</span>
+                            <button class="btn-rate" onclick="adjRate(${i}, 1)">+</button>
+                        </div>
+                        <span class="ratio-label" style="color:var(--primary); font-weight:900; font-size:1.2rem; width:55px; text-align:right;">${Math.round(ast.ratio/10)}%</span>
+                        <button class="lock-btn ${ast.locked?'locked':''}" onclick="toggleLock(${i})">${ast.locked?'🔒':'🔓'}</button>
+                    </div>
+                </div>
+                <input type="range" class="wide-slider" min="0" max="1000" value="${ast.ratio}" oninput="updateRatio(${i}, this.value)">
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function toggleLock(i) { assets[i].locked = !assets[i].locked; initAssets(); }
+    
+    function updateRatio(idx, newVal) {
+        newVal = parseInt(newVal); 
+        let diff = newVal - assets[idx].ratio;
+        let adjs = assets.filter((_, i) => i !== idx && !assets[i].locked);
+        let tAdj = adjs.reduce((s, a) => s + a.ratio, 0);
+
+        if (adjs.length > 0 && (tAdj > 0 || diff < 0)) {
+            assets[idx].ratio = newVal;
+            adjs.forEach(a => { 
+                let s = tAdj === 0 ? (diff / adjs.length) : (diff * (a.ratio / tAdj)); 
+                a.ratio = Math.max(0, a.ratio - s); 
+            });
+            let curT = assets.reduce((s, a) => s + a.ratio, 0);
+            if (curT !== 1000) adjs[0].ratio += (1000 - curT);
+        }
+        
+        calculate();
+        const sliders = document.querySelectorAll('.wide-slider');
+        const labels = document.querySelectorAll('.ratio-label');
+        assets.forEach((a, i) => {
+            sliders[i].value = a.ratio;
+            labels[i].innerText = Math.round(a.ratio/10) + "%";
+        });
+    }
+
+    function getSim(targetY) {
+        const start = parseN(document.getElementById('startMoney').value);
+        const y1 = parseInt(document.getElementById('y1').value) || 0;
+        const m1 = parseN(document.getElementById('m1').value);
+        const y2 = parseInt(document.getElementById('y2').value) || 0;
+        const m2 = parseN(document.getElementById('m2').value);
+        const m3 = parseN(document.getElementById('m3').value);
+        
+        let totalAsset = 0;
+        let totalPrinc = start;
+        
+        assets.forEach(ast => {
+            let cur = start * (ast.ratio / 1000);
+            const r = ast.rate / 100;
+            const mR = r / 12;
+
+            const d1 = Math.min(y1, targetY);
+            if (d1 > 0) {
+                if(ast === assets[0]) totalPrinc += (m1 * d1 * 12);
+                const mon = m1 * (ast.ratio / 1000);
+                cur = cur * Math.pow(1+r, d1) + (mR > 0 ? mon * ((Math.pow(1+mR, d1*12)-1)/mR) : mon * d1 * 12);
+            }
+            const d2 = Math.min(y2, Math.max(0, targetY - y1));
+            if (d2 > 0) {
+                if(ast === assets[0]) totalPrinc += (m2 * d2 * 12);
+                const mon = m2 * (ast.ratio / 1000);
+                cur = cur * Math.pow(1+r, d2) + (mR > 0 ? mon * ((Math.pow(1+mR, d2*12)-1)/mR) : mon * d2 * 12);
+            }
+            const d3 = Math.max(0, targetY - y1 - y2);
+            if (d3 > 0) {
+                if(ast === assets[0]) totalPrinc += (m3 * d3 * 12);
+                const mon = m3 * (ast.ratio / 1000);
+                cur = cur * Math.pow(1+r, d3) + (mR > 0 ? mon * ((Math.pow(1+mR, d3*12)-1)/mR) : mon * d3 * 12);
+            }
+            totalAsset += cur;
+        });
+        return { asset: totalAsset, princ: totalPrinc };
+    }
+
+    function calculate() {
+        const ty = parseInt(document.getElementById('totalYears').value) || 0;
+        document.getElementById('y3_val').innerText = Math.max(0, ty - (parseInt(document.getElementById('y1').value)||0) - (parseInt(document.getElementById('y2').value)||0));
+        const res = getSim(ty);
+        document.getElementById('resPrice').innerText = fmtWon(res.asset);
+        document.getElementById('resPrinc').innerText = "총 투입 원금: " + fmtWon(res.princ);
+        const badge = document.getElementById('goalBadge');
+        if (res.asset >= 10000000000) { badge.innerText = "💸 슈퍼 리치 (100억↑)"; badge.style.background = "#a855f7"; }
+        else if (res.asset >= 1000000000) { badge.innerText = "💰 성공한 투자자 (10억↑)"; badge.style.background = "var(--s3)"; }
+        else if (res.asset > parseN(document.getElementById('startMoney').value)) { badge.innerText = "📈 자산 증식 중"; badge.style.background = "var(--primary)"; }
+        else { badge.innerText = "시작이 반!"; badge.style.background = "#94a3b8"; }
+    }
+
+    function showReport() {
+        const ty = parseInt(document.getElementById('totalYears').value) || 0;
+        const base = parseInt(document.getElementById('baseAge').value) || 0;
+        let h = '';
+        for (let i = 5; i <= ty; i += 5) {
+            const d = getSim(i);
+            h += `<tr><td style="text-align:center">${base+i}세</td><td>${fmtWon(d.princ)}</td><td style="color:var(--primary); font-weight:bold;">${fmtWon(d.asset)}</td></tr>`;
+        }
+        const last = getSim(ty);
+        h += `<tr><td style="text-align:center">${base+ty}세</td><td>${fmtWon(last.princ)}</td><td style="color:var(--primary); font-weight:bold;">${fmtWon(last.asset)}</td></tr>`;
+        document.getElementById('reportTbody').innerHTML = h;
+        document.getElementById('modal').style.display='block'; document.getElementById('overlay').style.display='block';
+    }
+
+    function closeReport() { document.getElementById('modal').style.display='none'; document.getElementById('overlay').style.display='none'; }
+
+    /* 슬롯 기능 확장 */
+    function save(s) {
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+        const data = {
+            assets,
+            start: document.getElementById('startMoney').value,
+            y1: document.getElementById('y1').value,
+            m1: document.getElementById('m1').value,
+            y2: document.getElementById('y2').value,
+            m2: document.getElementById('m2').value,
+            m3: document.getElementById('m3').value,
+            ty: document.getElementById('totalYears').value,
+            time: timeStr
+        };
+        localStorage.setItem(`v71_slot_${s}`, JSON.stringify(data));
+        updateSlotInfo();
+        alert(`슬롯 ${s}번에 현재 설정이 저장되었습니다!`);
+    }
+
+    function load(s) {
+        const d = JSON.parse(localStorage.getItem(`v71_slot_${s}`));
+        if(!d) return alert(`슬롯 ${s}번에 저장된 데이터가 없습니다.`);
+        assets = d.assets;
+        document.getElementById('startMoney').value = d.start;
+        document.getElementById('y1').value = d.y1;
+        document.getElementById('m1').value = d.m1;
+        document.getElementById('y2').value = d.y2;
+        document.getElementById('m2').value = d.m2;
+        document.getElementById('m3').value = d.m3;
+        document.getElementById('totalYears').value = d.ty;
+        initAssets();
+        calculate();
+        alert(`슬롯 ${s}번 데이터를 불러왔습니다.`);
+    }
+
+    function updateSlotInfo() {
+        for(let i=1; i<=3; i++) {
+            const d = JSON.parse(localStorage.getItem(`v71_slot_${i}`));
+            if(d) document.getElementById(`t${i}`).innerText = d.time + " 저장";
+        }
+    }
+
+    initAssets(); 
+    calculate();
+    updateSlotInfo();
+</script>
+</body>
+</html>
